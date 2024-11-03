@@ -1,20 +1,20 @@
-import { useEffect, useState } from "react";
-import { Button, FlatList, Text, View } from "react-native";
+import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import React, { useState } from "react";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { globalStyles } from "@/assets/style/globalStyles";
 import {
   QueryClient,
   QueryClientProvider,
   useMutation,
   useQuery,
 } from "@tanstack/react-query";
-import { SafeAreaView } from "react-native-safe-area-context";
-import ItemCard from "@/components/ItemCard/ItemCard";
-import { Ionicons } from "@expo/vector-icons";
+import { Product } from "./productScreen";
 
-export interface Product {
-  name: string;
-  price: number;
-  image: string;
-}
+const AddProducts = () => {
+const [productName,setProductName] = useState("")
+const [productPrice,setProductPrice] = useState("")
+const [productImage,setProductImage] = useState("")
+
 const requestOptions = (newData: Product) => {
   return {
     method: "POST",
@@ -22,86 +22,118 @@ const requestOptions = (newData: Product) => {
     body: JSON.stringify(newData),
   };
 };
-const queryClient = new QueryClient();
 
-export default function Index() {
-  const [productData, setProductData] = useState<Product[]>([]);
+const mutation = useMutation({
+  mutationFn: async (newData: Product) => {
+    const api = await fetch(
+      "http://localhost:8000/api/products",
+      requestOptions(newData)
+    );
+    if (!api.ok) {
+      throw new Error("Error has occured while making api call");
+    }
+    return api.json();
+  },
+});
 
-  const getProducts = useQuery({
-    queryKey: ["products"],
-    queryFn: async () => {
-      const response = await fetch("http://localhost:8000/api/products");
-      const data = await response.json();
-      setProductData(data.data);
-      console.log("please ", productData);
-      return data.data;
-    },
-  });
-  useEffect(() => {
-    getProducts;
-  }, []);
-  const mutation = useMutation({
-    mutationFn: async (newData: Product) => {
-      const api = await fetch(
-        "http://localhost:8000/api/products",
-        requestOptions(newData)
-      );
-      if (!api.ok) {
-        throw new Error("Error has occured while making api call");
-      }
-      return api.json();
-    },
-  });
+const queryClient = new QueryClient()
+
 
   return (
     <QueryClientProvider client={queryClient}>
-      <SafeAreaView style={{ backgroundColor: "#243642" }}>
-        <View>
-          <FlatList
-            ListHeaderComponent={
-              <View style={{flexDirection:'row', justifyContent:'center',alignItems:'center'}}>
-              <Text
-                style={{
-                  fontWeight: 'semibold',
-                  textAlign: "center",
-                  fontSize: 30,
-                  // backgroundColor: "#387478",
-                  color: "#E2F1E7",
-                  // borderColor: "#629584",
-                  // borderWidth: 2,
-                  // width: "100%",
-                  paddingVertical:5,
-                  paddingEnd:10,
-                  marginBottom:5,
-                  // marginStart: "15%",
-                }}
-              >
-                My Products
-              </Text>
-              <Ionicons name="cube-outline" color={"#E2F1E7"} size={30} />
-              </View>
-            }
-            data={productData}
-            renderItem={({ item }) => (
-              <ItemCard
-                name={item.name}
-                price={item.price}
-                image={item.image}
-              ></ItemCard>
-            )}
-          ></FlatList>
-          <Button
-            title="Press"
-            onPress={() =>
-              mutation.mutateAsync({
-                name: "Neon Tooth brush 2",
-                price: 32,
-                image: "popopopop",
-              })
-            }
-          />
-        </View>
-      </SafeAreaView>
+
+    <SafeAreaView style={[globalStyles.defaults]}>
+      <View style={styles.container}>
+        <Text
+          style={{
+            fontWeight: "bold",
+            textAlign: "center",
+            fontSize: 30,
+            color: "#E2F1E7",
+            paddingVertical: 5,
+            paddingEnd: 10,
+            marginBottom: 5,
+          }}
+        >
+          Add new product
+        </Text>
+        <TextInput 
+          style={styles.textInput}
+          placeholder={"Product Name"}
+          placeholderTextColor={"grey"}
+          value={productName}
+          onChangeText={string=>setProductName(string)}
+        ></TextInput>
+        <TextInput
+        keyboardType='numeric'
+          style={styles.textInput}
+          placeholder={"Product Price"}
+          placeholderTextColor={"grey"}
+          value={productPrice}
+          onChangeText={string=>setProductPrice(string)}
+        ></TextInput>
+        <TextInput
+          style={styles.textInput}
+          placeholder={"Product Image URI"}
+          placeholderTextColor={"grey"}
+          value={productImage}
+          onChangeText={string=>setProductImage(string)}
+        ></TextInput>
+        <TouchableOpacity style={styles.submit} onPress={()=>{
+          const obj = {
+            name:productName,
+            price:productPrice,
+            image:productImage
+          }
+console.log(obj)
+          // mutation.mutateAsync({
+          //   name: "Neon Tooth brush 2",
+          //   price: 32,
+          //   image: "popopopop",
+          // })
+
+        }}>
+          <Text style={styles.submitText}>Submit</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
     </QueryClientProvider>
   );
-}
+};
+
+export default AddProducts;
+
+const styles = StyleSheet.create({
+  textInput: {
+    borderWidth: 2,
+    width: "80%",
+    height:"13%",
+    marginStart: "10%",
+    borderColor: "#629584",
+    backgroundColor: "white",
+    padding: 8,
+    fontSize: 15,
+    marginVertical: 20,
+    borderRadius:10
+  },
+  container: {
+    marginVertical: "10%",
+  },
+  submit:{
+    marginTop:20,
+    width:"50%",
+    backgroundColor:"#387478",
+    height:"10%",
+    marginStart:"25%",
+    justifyContent:'center',
+    alignItems:'center',
+    borderRadius:30,
+    borderWidth:2,
+    borderColor:"#629584"
+  },
+  submitText:{
+    fontSize:20,
+    fontWeight:'bold',
+    color:"#E2F1E7"
+  }
+});

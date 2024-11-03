@@ -8,7 +8,7 @@ export default function RootLayout() {
   const queryClient = new QueryClient();
   return (
     <QueryClientProvider client={queryClient}>
-      <Tabs
+      <Tabs 
         screenOptions={{
           tabBarBackground: () => (
             <BlurView
@@ -25,7 +25,7 @@ export default function RootLayout() {
         }}
       >
         <Tabs.Screen
-          name="index"
+          name="productScreen"
           options={{
             headerShown: false,
             tabBarIcon: ({ color, size }) => {
@@ -36,8 +36,8 @@ export default function RootLayout() {
 
           }}
         />
-        <Tabs.Screen
-          name="secondScreen"
+         <Tabs.Screen
+          name="index"
           options={{
             headerShown: false,
             tabBarIcon: ({ color, size }) => {
@@ -46,6 +46,8 @@ export default function RootLayout() {
             tabBarLabel:"Add Products"
           }}
         />
+        
+       
         <Tabs.Screen
           name="(profile)"
           options={{

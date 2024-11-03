@@ -2,7 +2,7 @@ import { View, Text, Image } from 'react-native'
 import React from 'react'
 import { style } from './style'
 
-const ItemCard = (props: {name:string,image:string,price:number}) => {
+const ItemCard = (props: {name:string,image:string,price:string}) => {
   return (
     <View style={style.container}>
     <Image style={style.image} source={{uri:props.image}} resizeMode='cover'></Image>
