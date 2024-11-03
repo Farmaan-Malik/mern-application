@@ -1,37 +1,62 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
-import 'react-native-reanimated';
+import { Ionicons } from "@expo/vector-icons";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BlurView } from "expo-blur";
+import { Stack, Tabs } from "expo-router";
 
-import { useColorScheme } from '@/hooks/useColorScheme';
-
-// Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-  const [loaded] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-  });
-
-  useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [loaded]);
-
-  if (!loaded) {
-    return null;
-  }
-
+  const queryClient = new QueryClient();
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-    </ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <Tabs
+        screenOptions={{
+          tabBarBackground: () => (
+            <BlurView
+            intensity={100}
+            tint={'regular'}
+            style={{
+              flex: 1,
+              backgroundColor: '#629584',
+            }}
+          />
+          ),
+          tabBarActiveTintColor:"#243642",
+          tabBarInactiveTintColor:"#629584"
+        }}
+      >
+        <Tabs.Screen
+          name="index"
+          options={{
+            headerShown: false,
+            tabBarIcon: ({ color, size }) => {
+              return <Ionicons name="cube-outline" size={size} color={color} />
+              ;
+            },
+            tabBarLabel:"Products"
+
+          }}
+        />
+        <Tabs.Screen
+          name="secondScreen"
+          options={{
+            headerShown: false,
+            tabBarIcon: ({ color, size }) => {
+              return <Ionicons name="add-outline" size={size} color={color} />;
+            },
+            tabBarLabel:"Add Products"
+          }}
+        />
+        <Tabs.Screen
+          name="(profile)"
+          options={{
+            headerShown: false,
+            tabBarIcon: ({ color, size }) => {
+              return <Ionicons name="home-outline" size={size} color={color} />;
+            },
+            tabBarLabel: "fogetabouti",
+          }}
+        />
+      </Tabs>
+    </QueryClientProvider>
   );
 }
