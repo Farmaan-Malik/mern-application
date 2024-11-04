@@ -46,18 +46,6 @@ export default function RootLayout() {
             tabBarLabel:"Add Products"
           }}
         />
-        
-       
-        <Tabs.Screen
-          name="(profile)"
-          options={{
-            headerShown: false,
-            tabBarIcon: ({ color, size }) => {
-              return <Ionicons name="home-outline" size={size} color={color} />;
-            },
-            tabBarLabel: "fogetabouti",
-          }}
-        />
       </Tabs>
     </QueryClientProvider>
   );

@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import {
-  Button,
+  ActivityIndicator,
   FlatList,
   Image,
   Modal,
@@ -14,13 +14,13 @@ import {
   QueryClient,
   QueryClientProvider,
   useMutation,
-  useQuery,
 } from "@tanstack/react-query";
 import * as ImagePicker from "expo-image-picker";
 
 import { SafeAreaView } from "react-native-safe-area-context";
 import ItemCard from "@/components/ItemCard/ItemCard";
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "expo-router";
 
 export interface Product {
   name: string;
@@ -54,27 +54,30 @@ export default function ProductScreen() {
     }
   };
 
-  const requestOptions = (newData: Product) => {
+  const updateOptions = (newData: Product) => {
     return {
-      method: "POST",
+      method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(newData),
     };
   };
 
-  const mutation = useMutation({
+  const updateMutation = useMutation({
     mutationFn: async (newData: Product) => {
       const api = await fetch(
-        "http://localhost:8000/api/products",
-        requestOptions(newData)
-      )
-        .then((response) => response.json())
-        .catch((error) => {
-          console.log(error);
-        });
-
+        `http://localhost:8000/api/products/${id}`,
+        updateOptions(newData)
+      );
       return api;
     },
+    onSuccess: () => {
+      console.log("Success");
+      dismiss();
+      getProducts.mutate();
+    },
+    onError:()=>{
+      console.log(updateMutation.error)
+    }
   });
 
   const [productName, setProductName] = useState("");
@@ -84,56 +87,95 @@ export default function ProductScreen() {
   const [productData, setProductData] = useState<ProductDetails[]>([]);
   const [selected, setSelected] = useState(false);
   const [id, setId] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const getProducts = useQuery({
-    queryKey: ["products"],
-    queryFn: async () => {
+  const getProducts = useMutation({
+    mutationFn: async () => {
+      setIsLoading(true);
+      console.log("calling");
       const response = await fetch("http://localhost:8000/api/products");
       const data = await response.json();
       setProductData(data.data);
-      console.log("please ", productData);
+      setIsLoading(false);
+      console.log("loadingGet ", isLoading);
       return data.data;
     },
   });
-  useEffect(() => {
-    getProducts;
-  }, []);
+  const removePlant = (id: string) => {
+    return fetch(`http://localhost:8000/api/products/${id}`, {
+      method: "DELETE",
+    });
+  };
+
+  const deleteProducts = useMutation({
+    mutationFn: () => removePlant(id as string),
+    onSuccess: () => {
+      console.log("Deleted");
+      dismiss();
+      getProducts.mutate();
+    },
+  });
+
+  useFocusEffect(
+    useCallback(() => {
+      console.log("Hello, I am focused!");
+      getProducts.mutate();
+
+      return () => {
+        console.log("This route is now unfocused.");
+      };
+    }, [])
+  );
 
   const dismiss = () => {
     setSelected(false);
     setId("");
-    setProductImage("");
+    setProductImage("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQeJQeJyzgAzTEVqXiGe90RGBFhfp_4RcJJMQ&s");
     setProductName("");
     setProductPrice("");
   };
   return (
     <QueryClientProvider client={queryClient}>
-      <SafeAreaView style={{ backgroundColor: "#243642" }}>
+      <SafeAreaView style={{height:"100%", backgroundColor: "#243642" }}>
         <View>
-          <FlatList
-            ListHeaderComponent={
-              <View style={styles.headerWrapper}>
-                <Text style={styles.header}>My Products</Text>
-                <Ionicons name="cube-outline" color={"#E2F1E7"} size={30} />
-              </View>
-            }
-            data={productData}
-            renderItem={({ item }) => (
-              <ItemCard
-                select={() => {
-                  setSelected(true);
-                  setId(item._id);
-                  setProductImage(item.image);
-                  setProductName(item.name);
-                  setProductPrice(item.price);
-                  console.log("uouo", item._id);
-                }}
-                name={item.name}
-                price={item.price}
-                image={item.image}
-              ></ItemCard>
-            )}
-          ></FlatList>
+          {productData.length == 0 && (
+            <View style={styles.indicatorContainer}>
+              <Text style={[styles.submitText, {fontSize:30}]}>No Products Here</Text>
+            </View>
+          )}
+          {isLoading && (
+            <View style={styles.indicatorContainer}>
+              <ActivityIndicator size={"large"} />
+            </View>
+          )}
+
+          {!isLoading && (
+            <FlatList
+              ListHeaderComponent={
+                <View style={styles.headerWrapper}>
+                  <Text style={styles.header}>My Products</Text>
+                  <Ionicons name="cube-outline" color={"#E2F1E7"} size={30} />
+                </View>
+              }
+              data={productData}
+              renderItem={({ item }) => (
+                <ItemCard
+                  select={() => {
+                    setSelected(true);
+                    setId(item._id);
+                    setProductImage(item.image);
+                    setProductName(item.name);
+                    setProductPrice(item.price);
+                    console.log("Item Id: ", item._id);
+                  }}
+                  name={item.name}
+                  price={item.price}
+                  image={item.image}
+                ></ItemCard>
+              )}
+            ></FlatList>
+          )}
+
           <Modal
             style={{ justifyContent: "center", alignItems: "center" }}
             animationType="fade"
@@ -192,35 +234,22 @@ export default function ProductScreen() {
                         image: productImage,
                       };
                       console.log(obj);
-                      mutation
+                      updateMutation
                         .mutateAsync(obj)
-                        .catch((error) => {
-                          console.log(error);
-                        })
-                        .finally(() => {
-                         dismiss()
-                        });
                     }}
                   >
                     <Text style={styles.submitText}>Submit</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.submit,{backgroundColor:"#9B4444"}]}
+                    style={[styles.submit, { backgroundColor: "#9B4444" }]}
                     onPress={() => {
                       const obj = {
                         name: productName,
-                        price: productPrice,
+                        price: `${productPrice}`,
                         image: productImage,
                       };
                       console.log(obj);
-                      mutation
-                        .mutateAsync(obj)
-                        .catch((error) => {
-                          console.log(error);
-                        })
-                        .finally(() => {
-                         dismiss()
-                        });
+                      deleteProducts.mutate();
                     }}
                   >
                     <Text style={styles.submitText}>Delete</Text>
@@ -240,7 +269,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-
+  indicatorContainer: {
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+  },
   header: {
     fontWeight: "semibold",
     textAlign: "center",
@@ -264,7 +298,6 @@ const styles = StyleSheet.create({
     height: "45%",
     paddingTop: 30,
     backgroundColor: "#629584",
-    // borderWidth:2,
     borderRadius: 20,
   },
   textInput: {
@@ -283,32 +316,30 @@ const styles = StyleSheet.create({
     position: "absolute",
     right: 5,
     top: 5,
-    borderWidth:2,
-    borderRadius:30,
-    borderColor:"#E2F1E7"
+    borderWidth: 2,
+    borderRadius: 30,
+    borderColor: "#E2F1E7",
   },
   upload: {
-    borderWidth: 2,
     width: "40%",
     height: "30%",
   },
   image: {
     width: "40%",
-    borderRadius:10,
+    borderRadius: 10,
     marginHorizontal: "5%",
   },
   imageWrapper: {
     flexDirection: "row",
-    marginVertical:20,
+    marginVertical: 20,
     justifyContent: "center",
     alignItems: "center",
   },
   submit: {
-    marginHorizontal:10,
+    marginHorizontal: 10,
     width: "30%",
     backgroundColor: "#387478",
     height: "50%",
-    // marginStart: "25%",
     justifyContent: "center",
     alignItems: "center",
     borderRadius: 30,
